@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Interactive</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Quiz Interface -->
+        <div class="quiz-card" id="quiz-interface">
+			<button class="btn btn-primary" id="sync-questions">Đồng bộ từ Google Sheet</button>
+            <div class="question-header">
+                <div class="question-text" id="question"></div>
+                <div class="score" id="score">Điểm: 0/0</div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress" style="width: 0%"></div>
+            </div>
+            <div class="answer-grid" id="answer-buttons"></div>
+			
+			<!-- Trong phần quiz-card -->
+			<div class="text-center mt-2">
+				<button class="btn btn-primary" id="prev-btn">← Trước</button>
+				<button class="btn btn-primary" id="next-btn">Tiếp theo →</button>
+				<button class="btn btn-primary" id="reset-btn">Làm Lại</button>
+			</div>
+        </div>
+    </div>
+	<div class="loading-overlay" id="loading">
+		<div class="loading-container">
+			<div class="progress-container">
+				<div class="progress-bar" id="loading-progress"></div>
+			</div>
+			<div class="progress-text" id="loading-text">0%</div>
+		</div>
+	</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
