@@ -15,6 +15,7 @@ const QUIZ_CONFIG = {
 };
 
 // Biến toàn cục
+let selectedQuestions = []; 
 let questions = [];
 let currentQuestionIndex = 0;
 let score = 0;
@@ -34,6 +35,7 @@ const elements = {
     quizInterface: document.getElementById("quiz-interface"),
 	resetButton: document.getElementById("reset-btn"),
 	asyncQuestion : document.getElementById("sync-questions"),
+	questionCount : document.getElementById("question-count"),
 };
 
 // ================= GOOGLE SHEET INTEGRATION ================= //
@@ -130,19 +132,28 @@ function loadLocalQuestions() {
     
     setTimeout(() => {
         const localData = localStorage.getItem('quiz-questions');
-        questions = localData ? JSON.parse(localData) : CONFIG.FALLBACK_QUESTIONS;
+        questions = localData ? JSON.parse(localData) : QUIZ_CONFIG.FALLBACK_QUESTIONS;
         hideLoading();
         initializeQuiz();
     }, 800);
 }
 
+function getRandomQuestions(n) {
+    const shuffled = questions.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, n);
+}
+
 // ================= QUIZ ENGINE ================= //
 function initializeQuiz() {
-    elements.quizInterface.style.display = 'block';
+    const questionCount = parseInt(document.getElementById('question-count').value);
+    selectedQuestions = getRandomQuestions(questionCount);
+    
+	elements.quizInterface.style.display = 'block';
     currentQuestionIndex = 0;
     score = 0;
     userAnswers = [];
-    scoreUpdated = new Array(questions.length).fill(false);
+    scoreUpdated = new Array(selectedQuestions.length).fill(false);
+    
     showQuestion(currentQuestionIndex);
 }
 
@@ -150,7 +161,7 @@ function showQuestion(index) {
     currentQuestionIndex = index;
     resetState();
     
-    const question = questions[index];
+    const question = selectedQuestions[index];
     elements.question.textContent = question.question;
     
     question.answers.forEach((answer, i) => {
@@ -206,23 +217,23 @@ function selectAnswer(e) {
 }
 
 function updateProgress() {
-    const progress = (currentQuestionIndex / questions.length) * 100;
+    const progress = (currentQuestionIndex / selectedQuestions.length) * 100;
     document.querySelector('.progress').style.width = `${progress}%`;
 }
 
 function updateScore() {
-    elements.score.textContent = `Điểm: ${score}/${questions.length}`;
+    elements.score.textContent = `Điểm: ${score}/${selectedQuestions.length}`;
 }
 
 function updateNavigation() {
     elements.prevButton.disabled = currentQuestionIndex === 0;
-    elements.nextButton.textContent = currentQuestionIndex < questions.length - 1 
+    elements.nextButton.textContent = currentQuestionIndex < selectedQuestions.length - 1 
         ? "Tiếp theo →" 
         : "Kết thúc";
 }
 
 function showNextQuestion() {
-    if (currentQuestionIndex < questions.length - 1) {
+    if (currentQuestionIndex < selectedQuestions.length - 1) {
         showQuestion(currentQuestionIndex + 1);
     } else {
         endQuiz();
@@ -241,7 +252,7 @@ function endQuiz() {
 	elements.prevButton.style.display = 'none';
     elements.nextButton.style.display = 'none';
 	elements.resetButton.style.display = 'block';
-    elements.score.textContent = `Điểm cuối cùng: ${score}/${questions.length}`;
+    elements.score.textContent = `Điểm cuối cùng: ${score}/${selectedQuestions.length}`;
 	document.querySelector('.progress').style.width = `100%`;
 }
 
@@ -259,4 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.prevButton.addEventListener('click', showPreviousQuestion);
     elements.resetButton.addEventListener('click', reloadPage);
 	elements.asyncQuestion.addEventListener('click', loadSheetData);
+	elements.questionCount.addEventListener('change', loadLocalQuestions);
+	
 });

@@ -266,3 +266,32 @@ body {
     color: var(--primary);
     font-weight: bold;
 }
+
+.quiz-controls {
+    margin-bottom: 20px;
+    display: contents;;
+    align-items: center;
+    gap: 10px;
+}
+
+.quiz-controls label {
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.quiz-controls select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    background: white;
+    cursor: pointer;
+}
+
+.quiz-controls select:hover {
+    border-color: var(--primary);
+}
+
+#sync-questions {
+	margin-right: 20px;
+}

@@ -10,7 +10,19 @@
     <div class="container">
         <!-- Quiz Interface -->
         <div class="quiz-card" id="quiz-interface">
-			<button class="btn btn-primary" id="sync-questions">Đồng bộ từ Google Sheet</button>
+			<div class="action-controls">
+				<button class="btn btn-primary" id="sync-questions">Đồng bộ từ Google Sheet</button>
+				<div class="quiz-controls">
+					<label for="question-count">Số câu hỏi:</label>
+					<select id="question-count">
+						<option value="10">10 câu</option>
+						<option value="20">20 câu</option>
+						<option value="50">50 câu</option>
+						<option value="100">100 câu</option>
+					</select>
+				</div>
+			</div>
+			<br/>
             <div class="question-header">
                 <div class="question-text" id="question"></div>
                 <div class="score" id="score">Điểm: 0/0</div>
