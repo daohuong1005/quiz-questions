@@ -1,17 +1,16 @@
 // script.js - Phiên bản hoàn chỉnh
+
+// const QUIZ_CONFIG = {
+    // SHEET_ID: '1l0be3pRYRAolPc36I7SMbqtAuHrz3qxDFbINnDjXBVE', // ID Google Sheet
+    // API_KEY: 'AIzaSyA02Uf4d2MfMBf9UzUGHYT63HmK-jpq5jc',
+    // DEFAULT_SHEET: 'N5_1'
+// };
+
 const QUIZ_CONFIG = {
-    SHEET_API_URL: 'https://script.google.com/macros/s/AKfycbz9T4vW1UAQ0vi3tgu5T6JMpYTgNVIZXneAPr9ynNJh2t6Z1iMC5N2fG7c0oUv9PTpmfQ/exec',
-	FALLBACK_QUESTIONS: [
-		{
-			question: "HTML là viết tắt của gì?",
-			answers: [
-				{ text: "Hyper Text Markup Language", correct: true },
-				{ text: "Home Tool Markup Language", correct: false },
-				{ text: "Hyperlinks and Text Markup Language", correct: false },
-				{ text: "Hyper Tool Multi Language", correct: false }
-			]
-		}
-    ]
+    SHEET_ID: '1l0be3pRYRAolPc36I7SMbqtAuHrz3qxDFbINnDjXBVE',
+    API_KEY: 'AIzaSyA02Uf4d2MfMBf9UzUGHYT63HmK-jpq5jc',
+    SHEETS_API: 'https://sheets.googleapis.com/v4/spreadsheets/',
+    DEFAULT_SHEET: 'N5_1'
 };
 
 // Biến toàn cục
@@ -25,6 +24,81 @@ let editingIndex = -1;
 let loadingProgress = 0;
 let progressInterval;
 
+let currentSheet = QUIZ_CONFIG.DEFAULT_SHEET;
+let sheetList = [];
+
+// Thêm biến kiểm soát trạng thái
+let isFetching = false;
+let abortController = null;
+
+// Thêm flag để ngăn vòng lặp
+let isUpdatingSheet = false;
+
+// Hàm lấy danh sách sheet
+async function fetchSheetList() {
+	if (abortController) abortController.abort();
+    abortController = new AbortController();
+	
+    try {
+        isFetching = true;
+        const response = await fetch(
+            `${QUIZ_CONFIG.SHEETS_API}${QUIZ_CONFIG.SHEET_ID}?key=${QUIZ_CONFIG.API_KEY}`,
+            { signal: abortController.signal }
+        );
+        if(!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        
+        const data = await response.json();
+        if(!data.sheets) throw new Error('Cấu trúc dữ liệu không hợp lệ');
+        
+        return data.sheets.map(sheet => sheet.properties.title);
+    } catch(error) {
+        console.error('Lỗi tải danh sách sheet:', error);
+        showErrorToast('Không thể tải danh sách sheet');
+        return [];
+    }finally {
+        isFetching = false;
+    }
+}
+
+// Hàm cập nhật dropdown sheets
+async function updateSheetDropdown() {
+	if(isFetching) return; // Chặn gọi trùng
+	
+	try {
+		const sheetSelect = document.getElementById('sheet-select');
+		sheetSelect.disabled = true;
+		sheetSelect.classList.add('loading-sheets');
+		
+		sheetList = await fetchSheetList();
+		
+		sheetSelect.innerHTML = sheetList.length > 0 
+			? sheetList.map(sheet => `
+				<option value="${sheet}" ${sheet === QUIZ_CONFIG.DEFAULT_SHEET ? 'selected' : ''}>
+					${sheet}
+				</option>
+			`).join('')
+			: '<option value="" disabled>Không tìm thấy sheet nào</option>';
+		
+		currentSheet = sheetSelect.value;
+		
+		// Event listener khi chọn sheet
+		sheetSelect.addEventListener('change', function() {
+			currentSheet = this.value;
+			localStorage.setItem('last-sheet', currentSheet);
+		});
+		
+		sheetSelect.disabled = false;
+		sheetSelect.classList.remove('loading-sheets');
+	} catch(error) {
+        if(error.name === 'AbortError') {
+            console.log('Fetch aborted');
+        } else {
+            // Xử lý lỗi khác
+        }
+    }
+}
+
+
 // DOM Elements
 const elements = {
     question: document.getElementById("question"),
@@ -36,66 +110,124 @@ const elements = {
 	resetButton: document.getElementById("reset-btn"),
 	asyncQuestion : document.getElementById("sync-questions"),
 	questionCount : document.getElementById("question-count"),
+	sheetSelect: document.getElementById('sheet-select'),
 };
+
+// Thêm hàm validate elements
+function validateElements() {
+    Object.entries(elements).forEach(([name, element]) => {
+        if (!element) {
+            console.error(`Element ${name} not found!`);
+        }
+    });
+}
 
 // ================= GOOGLE SHEET INTEGRATION ================= //
 
 async function loadSheetData() {
-    showLoading();
+	if(isFetching) return;
+	
+	if(!currentSheet) {
+        alert('Vui lòng chọn một sheet!');
+        return;
+    }
     
     try {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', QUIZ_CONFIG.SHEET_API_URL);
+		isFetching = true;
+		showLoading();
+		const sheetName = currentSheet;
+		const API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${QUIZ_CONFIG.SHEET_ID}/values/${sheetName}?key=${QUIZ_CONFIG.API_KEY}`;
+
+        const response = await fetch(API_URL);
+        const data = await response.json();
         
-        xhr.addEventListener('progress', (e) => {
-            if(e.lengthComputable) {
-                loadingProgress = (e.loaded / e.total) * 100;
-                updateProgressUI();
-            }
-        });
-        
-        const data = await new Promise((resolve, reject) => {
-            xhr.onload = () => {
-                if(xhr.status === 200) resolve(JSON.parse(xhr.response));
-                else reject(new Error(xhr.statusText));
-            };
-            
-            xhr.onerror = () => reject(new Error('Lỗi mạng'));
-            xhr.send();
-        });
-        
-        if(data.status === 'success') {
-            questions = data.data;
-            saveQuestions();
-            hideLoading();
-            initializeQuiz();
-        } else {
-            throw new Error(data.message);
+        if(data.error) {
+            throw new Error(data.error.message);
         }
+        
+        questions = processSheetData(data.values);
+        saveQuestions();
+        initializeQuiz();
     } catch(error) {
-        hideLoading();
         console.error('Lỗi tải dữ liệu:', error);
+        alert(`Không tìm thấy sheet "${sheetName}"!`);
         loadLocalQuestions();
+    } finally {
+        isFetching = false;
+        hideLoading();
     }
 }
 
+// Hàm xử lý dữ liệu từ Google Sheet
+function processSheetData(rows) {
+	let questions = [];
+    const HEADER_ROW = 0;
+    const QUESTION_COL = 0; // Cột chứa câu hỏi
+	const CORRECT_ANSWER_COL = 5; // Cột chứa câu hỏi
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!rows || rows.length < 2) {
+        console.error("Dữ liệu không hợp lệ: không đủ hàng");
+        return questions;
+    }
+
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length < 2) {
+            console.warn(`Bỏ qua hàng ${i + 1}: không đủ dữ liệu`);
+            continue;
+        }
+
+        const questionText = row[QUESTION_COL];
+		const correctAnswerIndex = row[CORRECT_ANSWER_COL];
+        const answers = [];
+        let correctAnswerFound = false;
+
+        // Xử lý các cột đáp án
+        for (let col = 1; col < row.length - 1; col++) {
+            const answerText = row[col]?.trim() || "";
+            
+            // Cách 1: Xác định đáp án đúng bằng cột riêng
+            if (correctAnswerIndex !== -1) {
+                const isCorrect = (col == correctAnswerIndex);
+                answers.push({ text: answerText, correct: isCorrect });
+                if (isCorrect) correctAnswerFound = true;
+            }
+        }
+
+        // Validate ít nhất 1 đáp án đúng
+        if (!correctAnswerFound) {
+            console.error(`Câu hỏi "${questionText}" không có đáp án đúng!`);
+            continue;
+        }
+
+        questions.push({
+            question: questionText,
+            answers: answers.filter(a => a.text) // Lọc đáp án trống
+        });
+    }
+
+    return questions;
+}
 
 function showLoading() {
+	if(progressInterval) clearInterval(progressInterval); // Clear trước khi tạo mới
+	
     document.getElementById('loading').style.display = 'flex';
     loadingProgress = 0;
-    updateProgressUI();
+    	
     
     progressInterval = setInterval(() => {
         if(loadingProgress < 95) {
             loadingProgress += Math.random() * 5;
-            updateProgressUI();
+            	
         }
     }, 200);
 }
 
 function hideLoading() {
     loadingProgress = 100;
-    updateProgressUI();
+    	
     clearInterval(progressInterval);
     
     setTimeout(() => {
@@ -103,14 +235,6 @@ function hideLoading() {
     }, 500);
 }
 
-function updateProgressUI() {
-    const progressBar = document.getElementById('loading-progress');
-    const progressText = document.getElementById('loading-text');
-    const progress = Math.min(100, Math.floor(loadingProgress));
-    
-    progressBar.style.width = `${progress}%`;
-    progressText.textContent = `${progress}%`;
-}
 
 // ================= LOCAL STORAGE ================= //
 function saveQuestions() {
@@ -121,11 +245,13 @@ function loadLocalQuestions() {
     showLoading();
     
     const fakeProgress = () => {
-        if(loadingProgress < 100) {
-            loadingProgress += Math.random() * 20;
-            updateProgressUI();
-            requestAnimationFrame(fakeProgress);
-        }
+        if (loadingProgress >= 100) return; // Điều kiện dừng
+    
+		loadingProgress += Math.random() * 20;
+		
+		if (loadingProgress < 100) {
+			requestAnimationFrame(fakeProgress);
+		}
     };
     
     fakeProgress();
@@ -165,8 +291,11 @@ function showQuestion(index) {
     elements.question.textContent = question.question;
     
     question.answers.forEach((answer, i) => {
+		const col = document.createElement('div');
+        col.className = 'col-12 col-md-6 col-lg-4 mb-3'; // Responsive columns
+        
         const button = document.createElement('button');
-        button.className = 'answer-btn';
+        button.className = 'answer-btn w-100';
         button.innerHTML = `
             <div class="answer-letter">${String.fromCharCode(65 + i)}</div>
             <div class="answer-text">${answer.text}</div>
@@ -180,6 +309,7 @@ function showQuestion(index) {
         }
         
         button.addEventListener('click', selectAnswer);
+		col.appendChild(button);
         elements.answerButtons.appendChild(button);
     });
     
@@ -261,15 +391,54 @@ function reloadPage() {
 }
 
 // ================= EVENT LISTENERS ================= //
-document.addEventListener('DOMContentLoaded', () => {
-    // Khởi tạo quiz
+// Thêm cleanup khi unmount
+window.addEventListener('beforeunload', () => {
+    if(abortController) abortController.abort();
+    if(progressInterval) clearInterval(progressInterval);
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+	validateElements();
+	
+	let isInitialized = false;
+	
+	const init = async () => {
+	if(isInitialized) return;
+	isInitialized = true;
+	
+	// Khởi tạo quiz
 	questions ? loadLocalQuestions() : loadSheetData()
-    
-    // Navigation
-    elements.nextButton.addEventListener('click', showNextQuestion);
-    elements.prevButton.addEventListener('click', showPreviousQuestion);
-    elements.resetButton.addEventListener('click', reloadPage);
+	
+	// Khởi tạo dropdown sheets
+	await updateSheetDropdown();
+	// Chỉ thêm event listener nếu element tồn tại
+	if (elements.sheetSelect) {
+		elements.sheetSelect.addEventListener('change', handleSheetChange);
+	}
+	
+	// Navigation
+	elements.nextButton.addEventListener('click', showNextQuestion);
+	elements.prevButton.addEventListener('click', showPreviousQuestion);
+	elements.resetButton.addEventListener('click', reloadPage);
 	elements.asyncQuestion.addEventListener('click', loadSheetData);
 	elements.questionCount.addEventListener('change', loadLocalQuestions);
+    };
+	
+	
+	init();
 	
 });
+
+function handleSheetChange(e) {
+	
+	if(isUpdatingSheet) return;
+    
+    try {
+        isUpdatingSheet = true;
+        currentSheet = e.target.value.trim() || QUIZ_CONFIG.DEFAULT_SHEET;
+		localStorage.setItem('last-sheet', currentSheet);
+		loadSheetData();
+    } finally {
+        isUpdatingSheet = false;
+    }
+}
