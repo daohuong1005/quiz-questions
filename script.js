@@ -1,14 +1,7 @@
 // script.js - Phiên bản hoàn chỉnh
-
-// const QUIZ_CONFIG = {
-    // SHEET_ID: '1l0be3pRYRAolPc36I7SMbqtAuHrz3qxDFbINnDjXBVE', // ID Google Sheet
-    // API_KEY: 'AIzaSyA02Uf4d2MfMBf9UzUGHYT63HmK-jpq5jc',
-    // DEFAULT_SHEET: 'N5_1'
-// };
-
 const QUIZ_CONFIG = {
     SHEET_ID: '1l0be3pRYRAolPc36I7SMbqtAuHrz3qxDFbINnDjXBVE',
-    API_KEY: 'AIzaSyA02Uf4d2MfMBf9UzUGHYT63HmK-jpq5jc',
+    API_KEY: process.env.API_KEY,
     SHEETS_API: 'https://sheets.googleapis.com/v4/spreadsheets/',
     DEFAULT_SHEET: 'N5_1'
 };
