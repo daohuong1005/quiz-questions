@@ -1,7 +1,7 @@
 // script.js - Phiên bản hoàn chỉnh
 const QUIZ_CONFIG = {
     SHEET_ID: '1l0be3pRYRAolPc36I7SMbqtAuHrz3qxDFbINnDjXBVE',
-    API_KEY: process.env.API_KEY,
+    API_KEY: ${{ secrets.API_KEY }},
     SHEETS_API: 'https://sheets.googleapis.com/v4/spreadsheets/',
     DEFAULT_SHEET: 'N5_1'
 };
