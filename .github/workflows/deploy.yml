@@ -26,6 +26,7 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        run: npm install -g pm2
 
       - name: Run Node.js script
-        run: node server/app.js
+        run: m2 start server/app.js
