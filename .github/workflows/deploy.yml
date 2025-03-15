@@ -21,9 +21,11 @@ jobs:
       - name: Create .env file
         run: |
           echo "API_KEY=${{ secrets.API_KEY }}" > .env
+          echo "SHEET_ID=${{ secrets.SHEET_ID }}" > .env
+          echo "PORT=${{ secrets.API_KEY }}" > .env
 
       - name: Install dependencies
         run: npm install
 
       - name: Run Node.js script
-        run: node script.js
+        run: node server/app.js
