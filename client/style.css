@@ -1,0 +1,143 @@
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --success-color: #27ae60;
+    --danger-color: #e74c3c;
+    --transition-speed: 0.3s;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+}
+
+/* Answer Buttons */
+.answer-btn {
+    padding: 1.25rem;
+    border: 2px solid #ecf0f1;
+    border-radius: 12px;
+    background: white;
+    transition: all var(--transition-speed) ease;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.answer-btn:hover:not([disabled]) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-color: var(--secondary-color);
+}
+
+.answer-btn.correct {
+    background-color: rgba(39, 174, 96, 0.15);
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.answer-btn.wrong {
+    background-color: rgba(231, 76, 60, 0.15);
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.answer-btn[disabled] {
+    opacity: 0.85;
+    cursor: not-allowed;
+}
+
+.answer-letter {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(3px);
+}
+
+/* Progress Bar */
+.progress-bar {
+    transition: width 0.5s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .answer-btn {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .answer-letter {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 576px) {
+    #question {
+        font-size: 1.1rem;
+    }
+    
+    .progress-bar {
+        height: 6px;
+    }
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+    animation: fadeIn 0.5s ease;
+}
+
+/* Animation cho điểm số */
+.score-update {
+    animation: scorePop 0.3s ease;
+}
+
+@keyframes scorePop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Style cho progress bar */
+.progress-bar {
+    transition: width 0.5s ease-in-out;
+    background-color: #4CAF50;
+    position: relative;
+}
+
+.progress-bar::after {
+    content: attr(aria-valuenow) '%';
+    position: absolute;
+    right: 10px;
+    color: white;
+    font-size: 0.85em;
+}
+
+/* Style cho badge sheet hiện tại */
+#current-sheet {
+    font-family: 'Courier New', monospace;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    background: linear-gradient(145deg, #ffffff, #e6e6e6);
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    font-size: 0.85rem;
+}
